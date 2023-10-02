@@ -1,0 +1,12 @@
+﻿---
+BasedOnStyle: Google
+BreakBeforeBraces: Allman
+Language: Cpp
+SpacesInSquareBrackets: 'false'
+Standard: Auto
+TabWidth: '4'
+UseTab: Never
+AlignTrailingComments: 'true'
+SpacesBeforeTrailingComments: 1
+
+...
