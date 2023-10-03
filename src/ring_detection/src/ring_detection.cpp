@@ -39,7 +39,10 @@ void Ring::front_view_cb(const sensor_msgs::ImageConstPtr& msg)
   front_left_img = cv_front_left_ptr->image;
   //  cv::imshow("front_left", cv_front_left_ptr->image);
   color_process(front_left_img, imgColor); // 颜色滤波
-      cv::imshow("imgColor", imgColor);
+  binProcess(imgColor, mask);
+  contoursFilter(mask, center, radius);
+  cv::imshow("imgColor", imgColor);
+  cv::imshow("mask", mask);
   cv::waitKey(10);
 }
 
@@ -112,6 +115,26 @@ void Ring::color_process(cv::Mat color, cv::Mat& dstRed)
   //  cv::waitKey(10);
 }
 
+void Ring::front_view_write()
+{
+  // 存储图像的频率（以帧为单位）
+  int saveFrequency = 10;
+
+  // 存储图像的路径和文件名
+  std::string savePath =
+      "/home/yi/CLionProjects/robomaster/src/pos_ctrl/imgColor";
+  std::string fileName = "image";
+
+  // 检查是否需要存储图像
+  static int frameCount = 0;
+  if (frameCount % saveFrequency == 0)
+  {
+    std::string filePath =
+        savePath + "/" + fileName + "_" + std::to_string(frameCount) + ".jpg";
+    cv::imwrite(filePath, imgColor);
+  }
+  frameCount++;
+}
 
 void Ring::contoursFilter(cv::Mat imgbin, cv::Point2f& centerReal,
                           float& radiusTrue)
@@ -140,10 +163,11 @@ void Ring::contoursFilter(cv::Mat imgbin, cv::Point2f& centerReal,
     cv::Point2f center; // 初步检测的圆的坐标
     float radius;
     cv::minEnclosingCircle(contours[i], center, radius);
+    if (imgbin.at<uchar>(center.y, center.x) != 0) continue;
     // 显示原始图像和绘制轮廓后的图像
-    //    cv::circle(contourImage, center, 5, cv::Scalar(0, 255, 0), -1);
-    //    cv::imshow("Original Image", imgbin);
-    //    cv::imshow("Contours", contourImage);
+    cv::circle(contourImage, center, 5, cv::Scalar(0, 255, 0), -1);
+    cv::imshow("Original Image", imgbin);
+    cv::imshow("Contours", contourImage);
     //    cv::waitKey(10);
   }
 }
@@ -151,7 +175,7 @@ void Ring::contoursFilter(cv::Mat imgbin, cv::Point2f& centerReal,
 cv::Point3d Ring::calculateWorldCoordinate(cv::Point2d leftPoint,
                                            cv::Point2d rightPoint)
 {
-  //TODO:以下参数待重新标定
+  // TODO:以下参数待重新标定
   cameraMatrix_left =
       (cv::Mat_<double>(3, 3) << 87.3275594874194, 0, 400.263391651105, 0,
        71.5629185891200, 291.471402908258, 0, 0, 1);
@@ -199,4 +223,58 @@ cv::Point3d Ring::calculateWorldCoordinate(cv::Point2d leftPoint,
   return cv::Point3f(normalizedPoints.at<float>(0, 0),
                      normalizedPoints.at<float>(0, 1),
                      normalizedPoints.at<float>(0, 2));
+}
+
+void Ring::binProcess(cv::Mat image, cv::Mat& mask)
+{
+  // 对图片进行二值化处理
+  cv::Mat binary_image;
+  cv::threshold(image, binary_image, 239, 255, cv::THRESH_BINARY);
+
+  // 寻找连通域
+  cv::Mat labels, stats, centroids;
+  int num_labels = cv::connectedComponentsWithStats(binary_image, labels, stats,
+                                                    centroids, 8);
+
+  // 找到最大连通域
+  int largest_component_label = 1;
+  int max_area = stats.at<int>(1, cv::CC_STAT_AREA);
+  for (int i = 2; i < num_labels; i++)
+  {
+    int area = stats.at<int>(i, cv::CC_STAT_AREA);
+    if (area > max_area)
+    {
+      max_area = area;
+      largest_component_label = i;
+    }
+  }
+
+  // 创建一个与原始图像大小相同的掩码图像
+  mask = cv::Mat::zeros(image.size(), CV_8UC1);
+
+  // 将最大连通域的像素设置为白色
+  for (int i = 0; i < mask.rows; i++)
+  {
+    for (int j = 0; j < mask.cols; j++)
+    {
+      if (labels.at<int>(i, j) == largest_component_label)
+      {
+        mask.at<uchar>(i, j) = 255;
+      }
+    }
+  }
+
+  /*TODO:之后对ROI区域进行分析以减少运算量
+  // 获取最大连通域的边界框
+  cv::Rect roi = cv::boundingRect(mask);
+
+  // 提取最大连通域所在的ROI
+  cv::Mat roi_image = image(roi);*/
+
+  // 显示原始图片和最大连通域
+  //  cv::imshow("Original Image", image);
+  //  cv::imshow("Binarized Image", binary_image);
+  //  cv::imshow("Largest Connected Component", mask);
+  //  cv::imshow("ROI", roi_image);
+  //  cv::waitKey(0);
 }

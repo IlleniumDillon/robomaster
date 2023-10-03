@@ -36,7 +36,7 @@ class Ring
 {
  private:
   cv_bridge::CvImageConstPtr cv_front_left_ptr, cv_front_right_ptr;
-  cv::Mat front_left_img, front_right_img;               // 原始图像
+  cv::Mat front_left_img, front_right_img; // 原始图像
 
   // 相机内参和畸变参数
   cv::Mat cameraMatrix_left, cameraMatrix_right; // 相机内参
@@ -44,10 +44,10 @@ class Ring
   // 摄像头相对位置
   cv::Mat R, T;
 
-  cv::Mat imgColor, imgColor_right, imgBin, imgBin_right;
+  cv::Mat imgColor, imgColor_right, imgBin, imgBin_right, mask, mask_right;
   cv::Point2f center, center_right, center_out;
   //  pcl::PointXYZ center3D;
-  float angle, radius,radius_right;
+  float angle, radius, radius_right;
   std::vector<cv::Point> contours;
 
   std::unique_ptr<image_transport::ImageTransport> it;
@@ -67,6 +67,10 @@ class Ring
   void readImage();
 
   void color_process(cv::Mat color, cv::Mat &dstRed);
+
+  void binProcess(cv::Mat image, cv::Mat &mask);
+
+  void front_view_write();
 
   void contoursFilter(cv::Mat imgbin, cv::Point2f &centerReal,
                       float &radiusTrue);
