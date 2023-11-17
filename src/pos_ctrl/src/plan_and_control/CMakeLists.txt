@@ -49,10 +49,10 @@ target_link_libraries(trajectory_tracking_node
    tracking_controller
 )
 
-add_executable(trajectory_replan_node src/trajectory_replan_node.cpp)
+# add_executable(trajectory_replan_node src/trajectory_replan_node.cpp)
 
-target_link_libraries(trajectory_replan_node
-   ${catkin_LIBRARIES}
-   ${OpenCV_LIBS}
-   trajectory_generator
-)
+# target_link_libraries(trajectory_replan_node
+#   ${catkin_LIBRARIES}
+#   ${OpenCV_LIBS}
+#   trajectory_generator
+# )
